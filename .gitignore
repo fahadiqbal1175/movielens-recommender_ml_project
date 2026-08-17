@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.DS_Store
+*.egg-info/
+
+# NOTE: artifacts/*.pkl and artifacts/*.csv are intentionally NOT ignored --
+# see README.md "About committing the artifacts" for why.

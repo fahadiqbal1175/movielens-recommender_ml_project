@@ -1,0 +1,23 @@
+{
+  "als_params": {
+    "factors": 64,
+    "regularization": 0.05,
+    "iterations": 15,
+    "random_state": 42
+  },
+  "positive_rating_threshold": 4.0,
+  "min_ratings_per_user": 5,
+  "min_ratings_per_movie": 5,
+  "feature_cols": [
+    "als_score",
+    "user_n_ratings",
+    "user_avg_rating",
+    "movie_n_ratings",
+    "movie_bayesian_score",
+    "genre_overlap"
+  ],
+  "n_candidates_default": 200,
+  "confidence_m_bayesian": 50,
+  "global_mean_rating": 3.528059244155884,
+  "random_seed": 42
+}
