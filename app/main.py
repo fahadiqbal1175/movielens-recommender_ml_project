@@ -23,7 +23,9 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from fastapi import FastAPI, HTTPException, Path as PathParam, Query, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
@@ -78,6 +80,18 @@ app = FastAPI(
     ),
     version="1.0.0",
     lifespan=lifespan,
+)
+
+# The demo frontend is served by this same app (see the static mount at the
+# bottom of this file), so cross-origin requests aren't needed in production.
+# CORS is left open here anyway so the frontend can also be pointed at this
+# API from a different origin during local development (e.g. a separate
+# `python -m http.server` for the static files while iterating on app.js).
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
 )
 
 
@@ -159,3 +173,12 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     to the client, instead of an unhandled-error crash response."""
     logger.exception("Unhandled error on %s %s", request.method, request.url.path)
     return JSONResponse(status_code=500, content={"detail": "Internal server error."})
+
+
+# Mounted last and at "/" so it never shadows the API routes above --
+# Starlette matches routes in the order they were added, so /health and
+# /recommend/{user_id} are always resolved first. html=True serves
+# static/index.html for "/" and for any unmatched path, which is what we
+# want for a single-page demo.
+STATIC_DIR = REPO_ROOT / "app" / "static"
+app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="frontend")

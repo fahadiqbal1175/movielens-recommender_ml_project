@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MovieLens Recommender — Box Office</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#15130f;
+    --bg-alt:#1e1b14;
+    --paper:#f3eee2;
+    --paper-dim:#e6ddc8;
+    --gold:#e8b84b;
+    --gold-dim:#8a6a24;
+    --teal:#3fa9a0;
+    --ink:#221f1a;
+    --muted:#8a8371;
+    --danger:#c9584a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at top, #201c15 0%, var(--bg) 55%);
+    color:var(--paper);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  a{color:var(--gold);}
+
+  /* ---------- Marquee header ---------- */
+  .marquee{
+    position:relative;
+    padding:2.75rem 1.5rem 2.25rem;
+    text-align:center;
+    background:
+      linear-gradient(180deg, var(--bg-alt) 0%, var(--bg) 100%);
+    border-bottom:3px solid var(--gold-dim);
+    overflow:hidden;
+  }
+  .bulbs{
+    display:flex;
+    justify-content:center;
+    gap:.6rem;
+    margin-bottom:1rem;
+  }
+  .bulbs span{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--gold-dim);
+    box-shadow:0 0 4px var(--gold-dim);
+    animation:blink 2.4s infinite ease-in-out;
+  }
+  .bulbs span:nth-child(odd){animation-delay:.4s;}
+  .bulbs span:nth-child(3n){animation-delay:.9s;}
+  @keyframes blink{
+    0%,100%{background:var(--gold-dim);box-shadow:0 0 4px var(--gold-dim);}
+    50%{background:var(--gold);box-shadow:0 0 10px var(--gold);}
+  }
+  .marquee h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    font-size:clamp(1.8rem,5vw,2.9rem);
+    margin:0;
+    color:var(--gold);
+    text-shadow:0 0 24px rgba(232,184,75,.25);
+  }
+  .marquee p{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--muted);
+    font-size:.8rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    margin:.6rem 0 0;
+  }
+
+  /* ---------- Box office / input ---------- */
+  .booth{
+    max-width:640px;
+    margin:-1.5rem auto 0;
+    padding:1.5rem;
+  }
+  .window{
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:6px;
+    padding:1.4rem 1.4rem 1.2rem;
+    box-shadow:0 18px 40px -18px rgba(0,0,0,.6);
+    border:1px solid var(--paper-dim);
+  }
+  .window-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.7rem;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:var(--muted);
+    margin-bottom:.75rem;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .status-dot{
+    width:8px;height:8px;border-radius:50%;
+    display:inline-block;
+    margin-right:.4rem;
+    background:var(--muted);
+  }
+  .status-dot.ok{background:#5faa63;}
+  .status-dot.loading{background:var(--gold);}
+  .status-dot.down{background:var(--danger);}
+
+  .form-row{
+    display:flex;
+    gap:.7rem;
+    flex-wrap:wrap;
+  }
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:.3rem;
+  }
+  .field label{
+    font-size:.7rem;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--muted);
+    font-weight:600;
+  }
+  input[type=number]{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:1rem;
+    padding:.6rem .7rem;
+    border-radius:4px;
+    border:1px solid #cfc4a4;
+    background:#fffdf8;
+    color:var(--ink);
+    width:100%;
+  }
+  #user-id{flex:1 1 160px;}
+  #top-k{width:90px;}
+  button{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    font-size:.95rem;
+    background:var(--gold);
+    color:#221a08;
+    border:none;
+    border-radius:4px;
+    padding:0 1.4rem;
+    cursor:pointer;
+    transition:transform .12s ease, background .12s ease;
+  }
+  button:hover{background:#f2c765;}
+  button:active{transform:scale(.97);}
+  button:disabled{background:#cbbfa0;cursor:progress;}
+  .btn-row{align-self:flex-end;}
+
+  .hint{
+    font-size:.75rem;
+    color:var(--muted);
+    margin-top:.7rem;
+  }
+
+  /* ---------- Result status line ---------- */
+  .result-status{
+    max-width:960px;
+    margin:1.6rem auto .4rem;
+    padding:0 1.5rem;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.85rem;
+    color:var(--muted);
+    text-align:center;
+    min-height:1.2rem;
+  }
+  .result-status.error{color:var(--danger);}
+  .result-status .tag{
+    color:var(--teal);
+    font-weight:600;
+  }
+
+  /* ---------- Ticket grid ---------- */
+  .grid{
+    max-width:960px;
+    margin:0 auto 4rem;
+    padding:0 1.5rem;
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(270px,1fr));
+    gap:1.1rem;
+  }
+  .ticket{
+    position:relative;
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:8px;
+    padding:1.1rem 1.1rem .95rem;
+    box-shadow:0 10px 24px -14px rgba(0,0,0,.55);
+    opacity:0;
+    transform:translateY(8px);
+    animation:rise .45s ease forwards;
+  }
+  @keyframes rise{to{opacity:1;transform:translateY(0);}}
+  .sprockets{
+    display:flex;
+    justify-content:space-between;
+    margin:0 -1.1rem .85rem;
+    padding:0 .55rem;
+  }
+  .sprockets span{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--bg);
+  }
+  .ticket .rank{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.7rem;
+    color:var(--muted);
+    letter-spacing:.06em;
+  }
+  .ticket h3{
+    font-family:'Oswald',sans-serif;
+    font-size:1.08rem;
+    margin:.15rem 0 .5rem;
+    line-height:1.25;
+  }
+  .genres{
+    display:flex;
+    flex-wrap:wrap;
+    gap:.35rem;
+    margin-bottom:.85rem;
+  }
+  .genres span{
+    font-size:.65rem;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    background:var(--paper-dim);
+    color:var(--ink);
+    padding:.2rem .5rem;
+    border-radius:20px;
+  }
+  .ticket-footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    border-top:1px dashed #c8bd9e;
+    padding-top:.6rem;
+  }
+  .score{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.85rem;
+    color:var(--teal);
+    font-weight:500;
+  }
+  .badge{
+    font-size:.62rem;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    padding:.2rem .5rem;
+    border-radius:20px;
+    font-weight:600;
+  }
+  .badge.model{background:rgba(63,169,160,.18);color:var(--teal);}
+  .badge.fallback{background:rgba(138,131,113,.2);color:var(--muted);}
+
+  /* ---------- Footer ---------- */
+  footer{
+    text-align:center;
+    padding:1.5rem;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.72rem;
+    color:var(--muted);
+    border-top:1px solid var(--bg-alt);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .bulbs span, .ticket{animation:none;}
+  }
+</style>
+</head>
+<body>
+
+<header class="marquee">
+  <div class="bulbs">
+    <span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <h1>Now Screening: Your Recommendations</h1>
+  <p>Two-stage ALS &rarr; ranking model, trained on MovieLens 25M</p>
+</header>
+
+<section class="booth">
+  <div class="window">
+    <div class="window-label">
+      <span><span class="status-dot" id="status-dot"></span>Box office — API status</span>
+      <span id="status-text">checking&hellip;</span>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label for="user-id">User ID</label>
+        <input type="number" id="user-id" min="1" placeholder="e.g. 1" value="1">
+      </div>
+      <div class="field">
+        <label for="top-k">How many</label>
+        <input type="number" id="top-k" min="1" max="100" value="10">
+      </div>
+      <div class="field btn-row">
+        <button id="go-btn" onclick="getRecommendations()">Get Tickets</button>
+      </div>
+    </div>
+    <p class="hint">Unknown or new user IDs fall back to a popularity ranking automatically — that's the cold-start path working as designed, not a bug.</p>
+  </div>
+</section>
+
+<p class="result-status" id="result-status"></p>
+<div class="grid" id="grid"></div>
+
+<footer>
+  MovieLens Recommender &middot; ALS candidate generation + logistic regression ranker
+  &middot; <a href="https://github.com/fahadiqbal1175/movielens-recommender_ml_project" target="_blank" rel="noopener">source on GitHub</a>
+</footer>
+
+<script>
+  const API_BASE = ''; // same origin — served by the FastAPI app itself
+
+  async function checkHealth(){
+    const dot = document.getElementById('status-dot');
+    const text = document.getElementById('status-text');
+    try{
+      const res = await fetch(`${API_BASE}/health`);
+      const data = await res.json();
+      if(data.artifacts_loaded){
+        dot.className = 'status-dot ok';
+        text.textContent = `online — ${data.n_users.toLocaleString()} users, ${data.n_movies.toLocaleString()} movies`;
+      } else {
+        dot.className = 'status-dot loading';
+        text.textContent = 'loading artifacts…';
+        setTimeout(checkHealth, 2000);
+      }
+    }catch(err){
+      dot.className = 'status-dot down';
+      text.textContent = 'unreachable';
+    }
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  async function getRecommendations(){
+    const userId = parseInt(document.getElementById('user-id').value, 10);
+    const topK = parseInt(document.getElementById('top-k').value, 10);
+    const grid = document.getElementById('grid');
+    const status = document.getElementById('result-status');
+    const btn = document.getElementById('go-btn');
+
+    if(!userId || userId < 1){
+      status.className = 'result-status error';
+      status.textContent = 'Enter a user ID of 1 or higher.';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Rolling film…';
+    status.className = 'result-status';
+    status.textContent = 'Fetching recommendations…';
+    grid.innerHTML = '';
+
+    try{
+      const res = await fetch(`${API_BASE}/recommend/${userId}?top_k=${topK}`);
+      if(!res.ok){
+        const err = await res.json().catch(() => ({detail: res.statusText}));
+        throw new Error(err.detail || `Request failed (${res.status})`);
+      }
+      const data = await res.json();
+
+      const sourceLabel = data.source === 'two_stage_model'
+        ? '<span class="tag">two-stage model</span> — personalized picks'
+        : '<span class="tag">popularity fallback</span> — cold-start user';
+      status.innerHTML = `Showing ${data.count} results for user ${data.user_id} — ${sourceLabel}`;
+
+      data.recommendations.forEach((movie, i) => {
+        const genres = movie.genres && movie.genres !== '(no genres listed)'
+          ? movie.genres.split('|').map(g => `<span>${escapeHtml(g)}</span>`).join('')
+          : '<span>Unclassified</span>';
+        const scoreHtml = movie.score !== null && movie.score !== undefined
+          ? `<span class="score">${(movie.score * 100).toFixed(1)}% match</span>`
+          : `<span class="score">&mdash;</span>`;
+        const badgeClass = movie.source === 'two_stage_model' ? 'model' : 'fallback';
+        const badgeText = movie.source === 'two_stage_model' ? 'Ranked' : 'Popular';
+
+        const card = document.createElement('article');
+        card.className = 'ticket';
+        card.style.animationDelay = `${i * 40}ms`;
+        card.innerHTML = `
+          <div class="sprockets">${'<span></span>'.repeat(8)}</div>
+          <div class="rank">No. ${String(i + 1).padStart(2,'0')} &nbsp;&middot;&nbsp; ID ${movie.movie_id}</div>
+          <h3>${escapeHtml(movie.title)}</h3>
+          <div class="genres">${genres}</div>
+          <div class="ticket-footer">
+            ${scoreHtml}
+            <span class="badge ${badgeClass}">${badgeText}</span>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      if(data.recommendations.length === 0){
+        status.textContent = 'No recommendations returned for this user.';
+      }
+    }catch(err){
+      status.className = 'result-status error';
+      status.textContent = `Couldn't load recommendations: ${err.message}`;
+    }finally{
+      btn.disabled = false;
+      btn.textContent = 'Get Tickets';
+    }
+  }
+
+  checkHealth();
+  window.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && document.activeElement.tagName === 'INPUT'){
+      getRecommendations();
+    }
+  });
+  document.addEventListener('DOMContentLoaded', () => getRecommendations());
+</script>
+
+</body>
+</html>
