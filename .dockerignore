@@ -1,0 +1,25 @@
+# Version control
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+
+# Tests -- not needed inside the runtime image
+tests/
+
+# Editor / OS cruft
+.vscode/
+.idea/
+.DS_Store
+
+# Anything stray at the top level that isn't part of the deployable app
+*.md
+!README.md
