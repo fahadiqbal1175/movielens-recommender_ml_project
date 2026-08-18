@@ -16,10 +16,14 @@ movielens-recommender/
 │   ├── features.py         <- per-(user, movie) feature computation
 │   ├── candidates.py       <- ALS-based candidate generation
 │   └── recommend.py        <- the public recommend_movies() function
+├── app/
+│   ├── main.py              <- FastAPI app (loads artifacts once at startup)
+│   └── schemas.py            <- request/response models
 ├── scripts/
 │   └── verify_artifacts.py <- run this first after setup
 ├── tests/
-│   └── test_recommender.py
+│   ├── test_recommender.py
+│   └── test_api.py
 └── requirements.txt
 ```
 
@@ -59,6 +63,30 @@ recs = recommend_movies(store, user_id=123, top_k=10)
 print(recs)
 ```
 
+## Running the API
+
+Start the server:
+```
+uvicorn app.main:app --reload
+```
+Artifacts load once at startup (watch the log line confirming how long that
+took) — not on every request. Once it's running:
+
+- Interactive docs: http://127.0.0.1:8000/docs
+- Health check: `GET /health`
+- Recommendations: `GET /recommend/{user_id}?top_k=10`
+
+```
+curl "http://127.0.0.1:8000/recommend/123?top_k=5"
+```
+
+Known users get `"source": "two_stage_model"` recommendations with scores;
+unknown/cold-start user IDs transparently fall back to
+`"source": "popularity_fallback"` with `score: null`. Invalid input
+(`user_id <= 0`, non-integer `user_id`, `top_k` outside 1–100) returns
+`422` with details on what was wrong. Run `pytest tests/` to exercise all
+of this against the real model.
+
 ## About committing the artifacts
 
 The `artifacts/` folder is **not** gitignored on purpose: the Docker build
@@ -86,7 +114,7 @@ the built image. Check the total folder size after copying it in:
 
 ```
 [x] Phase 1 — This repo: clean source code wrapping the trained model
-[ ] Phase 2 — FastAPI service exposing recommend_movies() over HTTP
+[x] Phase 2 — FastAPI service exposing recommend_movies() over HTTP
 [ ] Phase 3 — Docker containerization + local test
 [ ] Phase 4 — Simple frontend/demo
 [ ] Phase 5 — Deploy (Render/similar) + public URL
