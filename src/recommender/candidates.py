@@ -28,7 +28,12 @@ def generate_candidates(
     if user_id not in store.user_id_to_idx:
         return []
 
-    seen_movies = seen_movies or set()
+    if seen_movies is None:
+        seen_movies = set()
+    elif not isinstance(seen_movies, set):
+        seen_movies = set(seen_movies.tolist())
+    if not isinstance(seen_movies, set):
+        seen_movies = set(seen_movies.tolist())
     user_idx = store.user_id_to_idx[user_id]
 
     user_vec = store.als_model.user_factors[user_idx]

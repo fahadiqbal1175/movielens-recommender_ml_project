@@ -13,6 +13,10 @@ from .features import build_feature_row
 
 
 def _popularity_fallback(store: ArtifactStore, top_k: int, seen_movies: set) -> pd.DataFrame:
+    if seen_movies is None:
+        seen_movies = set()
+    elif not isinstance(seen_movies, set):
+        seen_movies = set(seen_movies.tolist())
     ranked_ids = [m for m in store.popularity_ranking if m not in seen_movies][:top_k]
     result = store.movies[store.movies["movieId"].isin(ranked_ids)][["movieId", "title", "genres"]].copy()
     # preserve popularity order rather than whatever isin() returns
@@ -33,7 +37,7 @@ def recommend_movies(
     """Return top_k (movieId, title, genres, score, source) recommendations
     for user_id. Falls back to popularity for unknown/cold-start users."""
     n_candidates = n_candidates or store.config.get("n_candidates_default", 200)
-    seen_movies = store.user_seen.get(user_id, set())
+    seen_movies = store.user_seen.get(user_id)
 
     candidates = generate_candidates(store, user_id, n_candidates=n_candidates, seen_movies=seen_movies)
     if not candidates:
