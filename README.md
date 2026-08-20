@@ -1,121 +1,134 @@
-# MovieLens 25M — Recommendation Engine (source code)
+# MovieLens 25M — Production-Style Movie Recommendation System
 
-Production-style two-stage movie recommender: ALS collaborative filtering for
-candidate generation, a logistic regression ranker for scoring, with a
-popularity fallback for cold-start users. Built and evaluated end-to-end in
-a Kaggle/Colab notebook; this repo is the deployable source-code version of
-that same pipeline.
+A two-stage movie recommender trained on the full **MovieLens 25M** dataset (25M ratings, 62K movies, 137K users), served behind a FastAPI backend with a cinema/box-office themed frontend, deployed live on Render.
+
+**🎬 Live demo:** https://movielens-recommender-a4je.onrender.com
+*(free-tier hosting — first request after idle may take 30–60s to cold-start)*
+
+**Source:** https://github.com/fahadiqbal1175/movielens-recommender_ml_project
+
+![Demo screenshot](docs/screenshot.gif)
+
+---
+
+## What this is
+
+Most "movie recommender" portfolio projects stop at a similarity matrix in a notebook. This one goes further: the model is trained end-to-end on the full 25M-rating dataset, wrapped in a proper Python package, exposed over a REST API, containerized, and deployed to a live public URL — including hitting and fixing a real production issue (an out-of-memory crash) along the way.
+
+## Architecture
+
+```
+Request → FastAPI → recommend_movies()
+                          │
+              ┌───────────┴───────────┐
+              │                       │
+        known user?              unknown / cold-start user?
+              │                       │
+   Stage 1: ALS candidate      Popularity fallback
+   generation (collaborative         │
+   filtering)                        │
+              │                      │
+   Stage 2: logistic regression      │
+   ranker scores each candidate      │
+              │                      │
+              └───────────┬──────────┘
+                     top-K results
+```
+
+- **Stage 1 — Candidate generation:** ALS (Alternating Least Squares) matrix factorization over the user–item interaction matrix produces a shortlist of plausible movies per user.
+- **Stage 2 — Ranking:** a logistic regression model scores each candidate using user/movie/interaction features, and the top-K by score are returned.
+- **Cold-start handling:** users with no training history (or fake/unknown IDs) transparently fall back to a popularity-based ranking instead of failing — `source: "popularity_fallback"` vs `source: "two_stage_model"` in the response.
+
+Full training pipeline (EDA, temporal train/test split, baselines, ALS, ranking model, evaluation with Precision@K / Recall@K / NDCG@K / Hit Rate@K, cold-start analysis) was built and evaluated in a Kaggle/Colab notebook; this repo is the deployable source-code version of that pipeline.
 
 ## Project structure
 
 ```
 movielens-recommender/
-├── artifacts/              <- trained model files (see setup below)
+├── artifacts/              trained model files (als_model.pkl, ranking_model.pkl,
+│                            id_mappings.pkl, movies.csv, user_features.csv,
+│                            movie_features.csv, user_top_genres.pkl, user_seen.pkl, ...)
 ├── src/recommender/
-│   ├── artifacts.py        <- loads all model/data files once, cached
-│   ├── features.py         <- per-(user, movie) feature computation
-│   ├── candidates.py       <- ALS-based candidate generation
-│   └── recommend.py        <- the public recommend_movies() function
+│   ├── artifacts.py         loads all model/data files once, cached
+│   ├── features.py          per-(user, movie) feature computation
+│   ├── candidates.py        ALS-based candidate generation
+│   └── recommend.py         the public recommend_movies() function
 ├── app/
-│   ├── main.py              <- FastAPI app (loads artifacts once at startup)
-│   └── schemas.py            <- request/response models
+│   ├── main.py               FastAPI app (loads artifacts once at startup)
+│   ├── schemas.py             request/response models
+│   └── static/                cinema-themed frontend (served by the same app)
 ├── scripts/
-│   └── verify_artifacts.py <- run this first after setup
+│   └── verify_artifacts.py  sanity-checks a known + unknown user end-to-end
 ├── tests/
 │   ├── test_recommender.py
 │   └── test_api.py
+├── Dockerfile
 └── requirements.txt
 ```
 
-## Setup
+## API
 
-1. Create a virtual environment and install dependencies:
-   ```
-   python -m venv .venv
-   source .venv/bin/activate   # Windows: .venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
-2. Copy the **entire `artifacts/` folder you downloaded from your Kaggle
-   notebook's Output tab** into this repo's `artifacts/` directory, so it
-   contains: `als_model.pkl`, `ranking_model.pkl`, `id_mappings.pkl`,
-   `movies.csv`, `user_features.csv`, `movie_features.csv`,
-   `user_top_genres.pkl`, `user_seen.pkl`, `config.json`,
-   `experiment_results.csv`.
-3. Verify everything works:
-   ```
-   python scripts/verify_artifacts.py
-   ```
-   This loads the artifacts, recommends for a known user (should say
-   `two_stage_model`) and an unknown user (should say
-   `popularity_fallback`), and asserts both work correctly.
-4. Run the test suite:
-   ```
-   pytest tests/
-   ```
+| Endpoint | Description |
+|---|---|
+| `GET /health` | Service + artifact status |
+| `GET /recommend/{user_id}?top_k=10` | Top-K recommendations for a user |
+| `GET /` | Frontend demo |
+| `GET /docs` | Interactive Swagger docs |
 
-## Usage
+```bash
+curl "https://movielens-recommender-a4je.onrender.com/health"
+# {"status":"ok","artifacts_loaded":true,"n_users":137840,"n_movies":62423}
 
-```python
-from recommender import get_store, recommend_movies
-
-store = get_store("artifacts")
-recs = recommend_movies(store, user_id=123, top_k=10)
-print(recs)
+curl "https://movielens-recommender-a4je.onrender.com/recommend/123?top_k=5"
+# {"user_id":123,"top_k":5,"count":5,"source":"two_stage_model","recommendations":[{"movie_id":2353,"title":"Enemy of the State (1998)","genres":"Action|Thriller","score":0.9995160482680447,"source":"two_stage_model"},{"movie_id":1573,"title":"Face/Off (1997)","genres":"Action|Crime|Drama|Thriller","score":0.9993302149093608,"source":"two_stage_model"},{"movie_id":357,"title":"Four Weddings and a Funeral (1994)","genres":"Comedy|Romance","score":0.9980549945796425,"source":"two_stage_model"},{"movie_id":1370,"title":"Die Hard 2 (1990)","genres":"Action|Adventure|Thriller","score":0.9980038848159132,"source":"two_stage_model"},{"movie_id":368,"title":"Maverick (1994)","genres":"Adventure|Comedy|Western","score":0.9974780779728559,"source":"two_stage_model"}]}
+# {"user_id":999999999,"top_k":5,"count":5,"source":"popularity_fallback","recommendations":[{"movie_id":318,"title":"Shawshank Redemption, The (1994)","genres":"Crime|Drama","score":null,"source":"popularity_fallback"},{"movie_id":858,"title":"Godfather, The (1972)","genres":"Crime|Drama","score":null,"source":"popularity_fallback"},{"movie_id":50,"title":"Usual Suspects, The (1995)","genres":"Crime|Mystery|Thriller","score":null,"source":"popularity_fallback"},{"movie_id":527,"title":"Schindler's List (1993)","genres":"Drama|War","score":null,"source":"popularity_fallback"},{"movie_id":1221,"title":"Godfather: Part II, The (1974)","genres":"Crime|Drama","score":null,"source":"popularity_fallback"}]}
 ```
 
-## Running the API
+Invalid input (`user_id <= 0`, non-integer `user_id`, `top_k` outside 1–100) returns `422` with details on what was wrong.
 
-Start the server:
-```
+## Running locally
+
+**Python:**
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+# copy the artifacts/ folder (from the training notebook's output) into place, then:
+python scripts/verify_artifacts.py   # sanity check
 uvicorn app.main:app --reload
 ```
-Artifacts load once at startup (watch the log line confirming how long that
-took) — not on every request. Once it's running:
+Visit `http://127.0.0.1:8000` for the frontend or `http://127.0.0.1:8000/docs` for the API docs.
 
-- Interactive docs: http://127.0.0.1:8000/docs
-- Health check: `GET /health`
-- Recommendations: `GET /recommend/{user_id}?top_k=10`
-
-```
-curl "http://127.0.0.1:8000/recommend/123?top_k=5"
+**Docker:**
+```bash
+docker build -t movielens-recommender .
+docker run -p 8000:8000 movielens-recommender
 ```
 
-Known users get `"source": "two_stage_model"` recommendations with scores;
-unknown/cold-start user IDs transparently fall back to
-`"source": "popularity_fallback"` with `score: null`. Invalid input
-(`user_id <= 0`, non-integer `user_id`, `top_k` outside 1–100) returns
-`422` with details on what was wrong. Run `pytest tests/` to exercise all
-of this against the real model.
+## Engineering notes: the memory-optimization story
 
-## About committing the artifacts
+The first Render deploy crashed with an out-of-memory error — the free tier caps containers at 512MB RAM, and the app was using ~1.98GB. A memory-profiling script traced it to a single file, `user_seen.pkl`: a pandas Series where each value was a Python `set`, and Python `set` objects carry very high per-object memory overhead at this scale (137K users × per-movie sets).
 
-The `artifacts/` folder is **not** gitignored on purpose: the Docker build
-in the next phase needs these files present in the repo so they end up in
-the built image. Check the total folder size after copying it in:
+**Fix:** `user_seen` was converted from a `Series` of `set` objects into a `dict` of compact NumPy `int32` arrays, with `candidates.py` and `recommend.py` updated to work against arrays/`None` instead of assuming Python sets. Combined with pinning `scikit-learn==1.6.1` to match the version the model was actually trained with, this brought the resident memory footprint down to **~447.7MB** — comfortably under the 512MB limit — while keeping identical recommendation output (verified by the full `pytest` suite, 11/11 passing).
 
-- **Under ~90MB total, no single file over ~90MB** → just `git add` and
-  commit normally.
-- **Larger than that** → GitHub will reject or warn on files over 100MB.
-  Use [Git LFS](https://git-lfs.com/) for the `.pkl`/`.csv` files instead
-  of committing them directly — `git lfs track "artifacts/*"` before your
-  first commit.
+## Known limitations
 
-## Known limitations (carried over from the notebook)
-
-- Cold-start users (no training history) get popularity recommendations,
-  not personalized ones — by design, see the notebook's Section 22.
-- Brand-new movies with zero ratings won't be recommended until they
-  accumulate some interactions.
-- The ranking model is trained on a 300K-row sample of positive
-  interactions, not the full dataset (see notebook Section 16) — a
-  deliberate memory/runtime trade-off.
+- Cold-start users (no training history) get popularity recommendations, not personalized ones — by design.
+- Brand-new movies with zero ratings won't be recommended until they accumulate some interactions.
+- The ranking model is trained on a 300K-row sample of positive interactions rather than the full dataset — a deliberate memory/runtime trade-off.
+- Free-tier hosting means the service spins down when idle; the first request afterward takes 30–60s to cold-start.
 
 ## Roadmap
 
 ```
-[x] Phase 1 — This repo: clean source code wrapping the trained model
+[x] Phase 1 — Source code wrapping the trained model
 [x] Phase 2 — FastAPI service exposing recommend_movies() over HTTP
-[ ] Phase 3 — Docker containerization + local test
-[ ] Phase 4 — Simple frontend/demo
-[ ] Phase 5 — Deploy (Render/similar) + public URL
+[x] Phase 3 — Docker containerization
+[x] Phase 4 — Cinema-themed frontend demo
+[x] Phase 5 — Deployed live on Render, memory-optimized, public URL
 ```
+
+## Adding a screenshot
+
+Take a screenshot (or short GIF) of the live frontend, save it as `docs/screenshot.png` (or `.gif`) in the repo, and it'll render at the top of this README automatically via the `![Demo screenshot](docs/screenshot.png)` line above.
