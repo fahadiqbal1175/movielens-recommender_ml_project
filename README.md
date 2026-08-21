@@ -3,7 +3,6 @@
 A two-stage movie recommender trained on the full **MovieLens 25M** dataset (25M ratings, 62K movies, 137K users), served behind a FastAPI backend with a cinema/box-office themed frontend, deployed live on Render.
 
 **🎬 Live demo:** https://movielens-recommender-a4je.onrender.com
-*(free-tier hosting — first request after idle may take 30–60s to cold-start)*
 
 **Source:** https://github.com/fahadiqbal1175/movielens-recommender_ml_project
 
@@ -128,7 +127,3 @@ The first Render deploy crashed with an out-of-memory error — the free tier ca
 [x] Phase 4 — Cinema-themed frontend demo
 [x] Phase 5 — Deployed live on Render, memory-optimized, public URL
 ```
-
-## Adding a screenshot
-
-Take a screenshot (or short GIF) of the live frontend, save it as `docs/screenshot.png` (or `.gif`) in the repo, and it'll render at the top of this README automatically via the `![Demo screenshot](docs/screenshot.png)` line above.
