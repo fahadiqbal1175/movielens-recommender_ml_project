@@ -107,7 +107,7 @@ docker run -p 8000:8000 movielens-recommender
 
 ## Engineering notes: the memory-optimization story
 
-The first Render deploy crashed with an out-of-memory error — the free tier caps containers at 512MB RAM, and the app was using ~1.98GB. A memory-profiling script traced it to a single file, `user_seen.pkl`: a pandas Series where each value was a Python `set`, and Python `set` objects carry very high per-object memory overhead at this scale (137K users × per-movie sets).
+At first the app was using ~1.98GB RAM. A memory-profiling script traced to a single file, `user_seen.pkl`: a pandas Series where each value was a Python `set`, and Python `set` objects carry very high per-object memory overhead at this scale (137K users × per-movie sets).
 
 **Fix:** `user_seen` was converted from a `Series` of `set` objects into a `dict` of compact NumPy `int32` arrays, with `candidates.py` and `recommend.py` updated to work against arrays/`None` instead of assuming Python sets. Combined with pinning `scikit-learn==1.6.1` to match the version the model was actually trained with, this brought the resident memory footprint down to **~447.7MB** — comfortably under the 512MB limit — while keeping identical recommendation output (verified by the full `pytest` suite, 11/11 passing).
 
