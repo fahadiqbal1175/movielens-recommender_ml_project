@@ -3,315 +3,357 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MovieLens Recommender — Box Office</title>
+<title>MovieLens Recommender</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#15130f;
-    --bg-alt:#1e1b14;
-    --paper:#f3eee2;
-    --paper-dim:#e6ddc8;
-    --gold:#e8b84b;
-    --gold-dim:#8a6a24;
-    --teal:#3fa9a0;
-    --ink:#221f1a;
-    --muted:#8a8371;
-    --danger:#c9584a;
+    --bg:#0d0f13;
+    --panel:#14171d;
+    --panel-2:#191d24;
+    --line:#262b34;
+    --text:#eceef1;
+    --text-dim:#8b93a1;
+    --text-faint:#565d6b;
+    --accent:#ffb238;
+    --accent-dim:#8a641f;
+    --match:#59d0c2;
+    --danger:#e2584a;
   }
   *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
   body{
     margin:0;
-    background:
-      radial-gradient(ellipse at top, #201c15 0%, var(--bg) 55%);
-    color:var(--paper);
+    background:var(--bg);
+    color:var(--text);
     font-family:'Inter',sans-serif;
     min-height:100vh;
   }
-  a{color:var(--gold);}
+  a{color:var(--accent);}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 
-  /* ---------- Marquee header ---------- */
-  .marquee{
+  /* ---------- Header ---------- */
+  header{
+    max-width:960px;
+    margin:0 auto;
+    padding:3.5rem 1.5rem 2.25rem;
     position:relative;
-    padding:2.75rem 1.5rem 2.25rem;
-    text-align:center;
-    background:
-      linear-gradient(180deg, var(--bg-alt) 0%, var(--bg) 100%);
-    border-bottom:3px solid var(--gold-dim);
-    overflow:hidden;
   }
-  .bulbs{
-    display:flex;
-    justify-content:center;
-    gap:.6rem;
-    margin-bottom:1rem;
-  }
-  .bulbs span{
-    width:7px;height:7px;border-radius:50%;
-    background:var(--gold-dim);
-    box-shadow:0 0 4px var(--gold-dim);
-    animation:blink 2.4s infinite ease-in-out;
-  }
-  .bulbs span:nth-child(odd){animation-delay:.4s;}
-  .bulbs span:nth-child(3n){animation-delay:.9s;}
-  @keyframes blink{
-    0%,100%{background:var(--gold-dim);box-shadow:0 0 4px var(--gold-dim);}
-    50%{background:var(--gold);box-shadow:0 0 10px var(--gold);}
-  }
-  .marquee h1{
-    font-family:'Oswald',sans-serif;
-    font-weight:700;
-    letter-spacing:.06em;
-    text-transform:uppercase;
-    font-size:clamp(1.8rem,5vw,2.9rem);
-    margin:0;
-    color:var(--gold);
-    text-shadow:0 0 24px rgba(232,184,75,.25);
-  }
-  .marquee p{
+  .eyebrow{
     font-family:'IBM Plex Mono',monospace;
-    color:var(--muted);
-    font-size:.8rem;
-    letter-spacing:.08em;
+    font-size:.72rem;
+    letter-spacing:.14em;
     text-transform:uppercase;
-    margin:.6rem 0 0;
+    color:var(--accent);
+    display:flex;
+    align-items:center;
+    gap:.5rem;
+    margin-bottom:1.1rem;
+  }
+  .eyebrow::before{
+    content:'';
+    width:6px;height:6px;
+    background:var(--accent);
+    border-radius:50%;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(2rem,5vw,3.1rem);
+    line-height:1.08;
+    letter-spacing:-.01em;
+    margin:0 0 .85rem;
+  }
+  h1 em{
+    font-style:italic;
+    font-weight:400;
+    color:var(--text-dim);
+  }
+  header p.sub{
+    font-family:'Inter',sans-serif;
+    color:var(--text-dim);
+    font-size:.98rem;
+    max-width:46ch;
+    line-height:1.55;
+    margin:0;
   }
 
-  /* ---------- Box office / input ---------- */
-  .booth{
-    max-width:640px;
-    margin:-1.5rem auto 0;
-    padding:1.5rem;
+  .sweep{
+    position:absolute;
+    top:0; left:0; right:0; height:1px;
+    background:linear-gradient(90deg, transparent, var(--accent) 45%, transparent 90%);
+    background-size:220% 100%;
+    animation:sweep 1.8s ease-out both;
   }
-  .window{
-    background:var(--paper);
-    color:var(--ink);
-    border-radius:6px;
-    padding:1.4rem 1.4rem 1.2rem;
-    box-shadow:0 18px 40px -18px rgba(0,0,0,.6);
-    border:1px solid var(--paper-dim);
+  @keyframes sweep{
+    from{background-position:130% 0;opacity:0;}
+    30%{opacity:1;}
+    to{background-position:-30% 0;opacity:0;}
   }
-  .window-label{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:.7rem;
-    text-transform:uppercase;
-    letter-spacing:.12em;
-    color:var(--muted);
-    margin-bottom:.75rem;
+
+  /* ---------- Query panel ---------- */
+  .query{
+    max-width:960px;
+    margin:0 auto;
+    padding:0 1.5rem;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:1.3rem 1.4rem;
+  }
+  .status-line{
     display:flex;
-    justify-content:space-between;
     align-items:center;
+    gap:.5rem;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.78rem;
+    color:var(--text-faint);
+    margin-bottom:1.1rem;
+    letter-spacing:.02em;
   }
-  .status-dot{
-    width:8px;height:8px;border-radius:50%;
-    display:inline-block;
-    margin-right:.4rem;
-    background:var(--muted);
+  .dot{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--text-faint);
+    flex-shrink:0;
   }
-  .status-dot.ok{background:#5faa63;}
-  .status-dot.loading{background:var(--gold);}
-  .status-dot.down{background:var(--danger);}
+  .dot.ok{background:#5fbf6d;box-shadow:0 0 8px rgba(95,191,109,.5);}
+  .dot.loading{background:var(--accent);box-shadow:0 0 8px rgba(255,178,56,.5);}
+  .dot.down{background:var(--danger);box-shadow:0 0 8px rgba(226,88,74,.5);}
 
   .form-row{
     display:flex;
-    gap:.7rem;
+    align-items:flex-end;
+    gap:.85rem;
     flex-wrap:wrap;
   }
   .field{
     display:flex;
     flex-direction:column;
-    gap:.3rem;
+    gap:.4rem;
   }
   .field label{
-    font-size:.7rem;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.68rem;
     text-transform:uppercase;
-    letter-spacing:.08em;
-    color:var(--muted);
-    font-weight:600;
+    letter-spacing:.1em;
+    color:var(--text-faint);
   }
   input[type=number]{
     font-family:'IBM Plex Mono',monospace;
-    font-size:1rem;
-    padding:.6rem .7rem;
-    border-radius:4px;
-    border:1px solid #cfc4a4;
-    background:#fffdf8;
-    color:var(--ink);
-    width:100%;
-  }
-  #user-id{flex:1 1 160px;}
-  #top-k{width:90px;}
-  button{
-    font-family:'Oswald',sans-serif;
-    font-weight:600;
-    letter-spacing:.04em;
-    text-transform:uppercase;
     font-size:.95rem;
-    background:var(--gold);
-    color:#221a08;
+    padding:.62rem .75rem;
+    border-radius:6px;
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    color:var(--text);
+    width:100%;
+    transition:border-color .15s ease;
+  }
+  input[type=number]:hover{border-color:#3a4150;}
+  input[type=number]:focus{border-color:var(--accent);outline:none;}
+  #viewer-id{flex:1 1 150px;}
+  #frame-count{width:82px;}
+  button{
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:500;
+    letter-spacing:.04em;
+    font-size:.85rem;
+    background:var(--accent);
+    color:#1a1305;
     border:none;
-    border-radius:4px;
-    padding:0 1.4rem;
+    border-radius:6px;
+    padding:.68rem 1.3rem;
     cursor:pointer;
-    transition:transform .12s ease, background .12s ease;
+    transition:background .12s ease, transform .1s ease;
+    white-space:nowrap;
   }
-  button:hover{background:#f2c765;}
+  button:hover{background:#ffc35e;}
   button:active{transform:scale(.97);}
-  button:disabled{background:#cbbfa0;cursor:progress;}
-  .btn-row{align-self:flex-end;}
+  button:disabled{background:#4a4230;color:#8a8168;cursor:progress;}
 
-  .hint{
-    font-size:.75rem;
-    color:var(--muted);
-    margin-top:.7rem;
+  .caption{
+    font-size:.78rem;
+    color:var(--text-faint);
+    margin:.9rem 0 0;
+    line-height:1.4;
   }
 
-  /* ---------- Result status line ---------- */
+  /* ---------- Result status ---------- */
   .result-status{
     max-width:960px;
-    margin:1.6rem auto .4rem;
+    margin:1.5rem auto .3rem;
     padding:0 1.5rem;
     font-family:'IBM Plex Mono',monospace;
-    font-size:.85rem;
-    color:var(--muted);
-    text-align:center;
-    min-height:1.2rem;
+    font-size:.8rem;
+    color:var(--text-faint);
+    min-height:1.1rem;
   }
   .result-status.error{color:var(--danger);}
-  .result-status .tag{
-    color:var(--teal);
-    font-weight:600;
-  }
+  .result-status .tag{color:var(--accent);font-weight:500;}
 
-  /* ---------- Ticket grid ---------- */
+  /* ---------- Frame grid ---------- */
   .grid{
     max-width:960px;
     margin:0 auto 4rem;
     padding:0 1.5rem;
     display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(270px,1fr));
-    gap:1.1rem;
+    grid-template-columns:repeat(auto-fill,minmax(255px,1fr));
+    gap:1rem;
   }
-  .ticket{
-    position:relative;
-    background:var(--paper);
-    color:var(--ink);
+  .frame{
+    background:var(--panel);
+    border:1px solid var(--line);
     border-radius:8px;
-    padding:1.1rem 1.1rem .95rem;
-    box-shadow:0 10px 24px -14px rgba(0,0,0,.55);
+    padding:0;
+    overflow:hidden;
     opacity:0;
-    transform:translateY(8px);
-    animation:rise .45s ease forwards;
+    transform:translateY(6px);
+    animation:rise .4s ease forwards;
+    transition:border-color .15s ease;
   }
+  .frame:hover{border-color:#3a4150;}
   @keyframes rise{to{opacity:1;transform:translateY(0);}}
+
   .sprockets{
     display:flex;
+    gap:.4rem;
+    padding:.55rem .8rem;
+    background:var(--panel-2);
+    border-bottom:1px solid var(--line);
+    align-items:center;
     justify-content:space-between;
-    margin:0 -1.1rem .85rem;
-    padding:0 .55rem;
   }
-  .sprockets span{
-    width:8px;height:8px;border-radius:50%;
+  .sprockets .holes{display:flex;gap:.3rem;}
+  .sprockets .holes span{
+    width:5px;height:5px;border-radius:50%;
     background:var(--bg);
+    border:1px solid var(--line);
   }
-  .ticket .rank{
+  .frame-no{
     font-family:'IBM Plex Mono',monospace;
-    font-size:.7rem;
-    color:var(--muted);
-    letter-spacing:.06em;
+    font-size:.68rem;
+    color:var(--text-faint);
+    letter-spacing:.04em;
   }
-  .ticket h3{
-    font-family:'Oswald',sans-serif;
-    font-size:1.08rem;
-    margin:.15rem 0 .5rem;
-    line-height:1.25;
+
+  .frame-body{padding:.95rem 1rem 1.05rem;}
+  .frame-body h3{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:1.05rem;
+    line-height:1.28;
+    margin:0 0 .6rem;
   }
   .genres{
     display:flex;
     flex-wrap:wrap;
-    gap:.35rem;
-    margin-bottom:.85rem;
+    gap:.3rem;
+    margin-bottom:.9rem;
   }
   .genres span{
-    font-size:.65rem;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.63rem;
     text-transform:uppercase;
-    letter-spacing:.05em;
-    background:var(--paper-dim);
-    color:var(--ink);
-    padding:.2rem .5rem;
+    letter-spacing:.03em;
+    color:var(--text-dim);
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    padding:.18rem .5rem;
     border-radius:20px;
   }
-  .ticket-footer{
+
+  .match-row{margin-bottom:.7rem;}
+  .match-label{
     display:flex;
     justify-content:space-between;
-    align-items:center;
-    border-top:1px dashed #c8bd9e;
-    padding-top:.6rem;
-  }
-  .score{
     font-family:'IBM Plex Mono',monospace;
-    font-size:.85rem;
-    color:var(--teal);
+    font-size:.68rem;
+    color:var(--text-faint);
+    margin-bottom:.3rem;
+  }
+  .match-label b{color:var(--match);font-weight:500;}
+  .match-bar{
+    height:3px;
+    background:var(--panel-2);
+    border-radius:2px;
+    overflow:hidden;
+  }
+  .match-bar i{
+    display:block;
+    height:100%;
+    background:var(--match);
+    border-radius:2px;
+  }
+  .match-bar.na i{background:var(--text-faint);width:0;}
+
+  .badge{
+    display:inline-block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.63rem;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    padding:.2rem .55rem;
+    border-radius:20px;
     font-weight:500;
   }
-  .badge{
-    font-size:.62rem;
-    text-transform:uppercase;
-    letter-spacing:.05em;
-    padding:.2rem .5rem;
-    border-radius:20px;
-    font-weight:600;
-  }
-  .badge.model{background:rgba(63,169,160,.18);color:var(--teal);}
-  .badge.fallback{background:rgba(138,131,113,.2);color:var(--muted);}
+  .badge.model{background:rgba(89,208,194,.14);color:var(--match);}
+  .badge.fallback{background:rgba(139,147,161,.14);color:var(--text-dim);}
 
   /* ---------- Footer ---------- */
   footer{
     text-align:center;
-    padding:1.5rem;
+    padding:1.6rem 1.5rem;
     font-family:'IBM Plex Mono',monospace;
     font-size:.72rem;
-    color:var(--muted);
-    border-top:1px solid var(--bg-alt);
+    color:var(--text-faint);
+    border-top:1px solid var(--line);
+  }
+  footer a{color:var(--text-dim);text-decoration:underline;text-underline-offset:2px;}
+  footer a:hover{color:var(--accent);}
+
+  @media (max-width:480px){
+    .form-row{flex-direction:column;align-items:stretch;}
+    #frame-count{width:100%;}
+    button{width:100%;}
   }
 
   @media (prefers-reduced-motion: reduce){
-    .bulbs span, .ticket{animation:none;}
+    .frame{animation:none;opacity:1;transform:none;}
+    .sweep{animation:none;display:none;}
+    html{scroll-behavior:auto;}
   }
 </style>
 </head>
 <body>
 
-<header class="marquee">
-  <div class="bulbs">
-    <span></span><span></span><span></span><span></span><span></span>
-    <span></span><span></span><span></span><span></span><span></span>
-  </div>
-  <h1>Now Screening: Your Recommendations</h1>
-  <p>Two-stage ALS &rarr; ranking model, trained on MovieLens 25M</p>
+<header>
+  <div class="sweep"></div>
+  <p class="eyebrow">Recommendation engine — MovieLens 25M</p>
+  <h1>Frame by frame,<br><em>tuned to one viewer.</em></h1>
+  <p class="sub">A two-stage model — ALS candidate generation, then a logistic-regression ranker — scores every title against a single viewer's history.</p>
 </header>
 
-<section class="booth">
-  <div class="window">
-    <div class="window-label">
-      <span><span class="status-dot" id="status-dot"></span>Box office — API status</span>
-      <span id="status-text">checking&hellip;</span>
+<section class="query">
+  <div class="panel">
+    <div class="status-line">
+      <span class="dot" id="status-dot"></span>
+      <span id="status-text">Connecting…</span>
     </div>
     <div class="form-row">
       <div class="field">
-        <label for="user-id">User ID</label>
-        <input type="number" id="user-id" min="1" placeholder="e.g. 1" value="1">
+        <label for="viewer-id">Viewer ID</label>
+        <input type="number" id="viewer-id" min="1" placeholder="e.g. 1" value="1">
       </div>
       <div class="field">
-        <label for="top-k">How many</label>
-        <input type="number" id="top-k" min="1" max="100" value="10">
+        <label for="frame-count">Frames</label>
+        <input type="number" id="frame-count" min="1" max="100" value="10">
       </div>
-      <div class="field btn-row">
-        <button id="go-btn" onclick="getRecommendations()">Get Tickets</button>
-      </div>
+      <button id="go-btn" onclick="getRecommendations()">Run recommender</button>
     </div>
-    <p class="hint">Unknown or new user IDs fall back to a popularity ranking automatically — that's the cold-start path working as designed, not a bug.</p>
+    <p class="caption">Unrecognized IDs return the popularity fallback — the model's cold-start path.</p>
   </div>
 </section>
 
@@ -319,8 +361,8 @@
 <div class="grid" id="grid"></div>
 
 <footer>
-  MovieLens Recommender &middot; ALS candidate generation + logistic regression ranker
-  &middot; <a href="https://github.com/fahadiqbal1175/movielens-recommender_ml_project" target="_blank" rel="noopener">source on GitHub</a>
+  ALS candidate generation + logistic regression ranker ·
+  <a href="https://github.com/fahadiqbal1175/movielens-recommender_ml_project" target="_blank" rel="noopener">source on GitHub</a>
 </footer>
 
 <script>
@@ -333,16 +375,16 @@
       const res = await fetch(`${API_BASE}/health`);
       const data = await res.json();
       if(data.artifacts_loaded){
-        dot.className = 'status-dot ok';
-        text.textContent = `online — ${data.n_users.toLocaleString()} users, ${data.n_movies.toLocaleString()} movies`;
+        dot.className = 'dot ok';
+        text.textContent = `Online — ${data.n_users.toLocaleString()} viewers indexed, ${data.n_movies.toLocaleString()} titles`;
       } else {
-        dot.className = 'status-dot loading';
-        text.textContent = 'loading artifacts…';
+        dot.className = 'dot loading';
+        text.textContent = 'Loading model artifacts…';
         setTimeout(checkHealth, 2000);
       }
     }catch(err){
-      dot.className = 'status-dot down';
-      text.textContent = 'unreachable';
+      dot.className = 'dot down';
+      text.textContent = 'Unreachable';
     }
   }
 
@@ -353,20 +395,20 @@
   }
 
   async function getRecommendations(){
-    const userId = parseInt(document.getElementById('user-id').value, 10);
-    const topK = parseInt(document.getElementById('top-k').value, 10);
+    const userId = parseInt(document.getElementById('viewer-id').value, 10);
+    const topK = parseInt(document.getElementById('frame-count').value, 10);
     const grid = document.getElementById('grid');
     const status = document.getElementById('result-status');
     const btn = document.getElementById('go-btn');
 
     if(!userId || userId < 1){
       status.className = 'result-status error';
-      status.textContent = 'Enter a user ID of 1 or higher.';
+      status.textContent = 'Enter a viewer ID of 1 or higher.';
       return;
     }
 
     btn.disabled = true;
-    btn.textContent = 'Rolling film…';
+    btn.textContent = 'Scoring…';
     status.className = 'result-status';
     status.textContent = 'Fetching recommendations…';
     grid.innerHTML = '';
@@ -380,30 +422,42 @@
       const data = await res.json();
 
       const sourceLabel = data.source === 'two_stage_model'
-        ? '<span class="tag">two-stage model</span> — personalized picks'
-        : '<span class="tag">popularity fallback</span> — cold-start user';
-      status.innerHTML = `Showing ${data.count} results for user ${data.user_id} — ${sourceLabel}`;
+        ? '<span class="tag">two-stage model</span> — personalized for this viewer'
+        : '<span class="tag">popularity fallback</span> — cold-start viewer';
+      status.innerHTML = `${data.count} results for viewer ${data.user_id} — ${sourceLabel}`;
 
       data.recommendations.forEach((movie, i) => {
         const genres = movie.genres && movie.genres !== '(no genres listed)'
           ? movie.genres.split('|').map(g => `<span>${escapeHtml(g)}</span>`).join('')
           : '<span>Unclassified</span>';
-        const scoreHtml = movie.score !== null && movie.score !== undefined
-          ? `<span class="score">${(movie.score * 100).toFixed(1)}% match</span>`
-          : `<span class="score">&mdash;</span>`;
+
+        const hasScore = movie.score !== null && movie.score !== undefined;
+        const pct = hasScore ? Math.max(0, Math.min(100, movie.score * 100)) : 0;
+        const matchHtml = hasScore
+          ? `<div class="match-row">
+               <div class="match-label"><span>Match</span><b>${pct.toFixed(1)}%</b></div>
+               <div class="match-bar"><i style="width:${pct}%"></i></div>
+             </div>`
+          : `<div class="match-row">
+               <div class="match-label"><span>Match</span><span>&mdash;</span></div>
+               <div class="match-bar na"><i></i></div>
+             </div>`;
+
         const badgeClass = movie.source === 'two_stage_model' ? 'model' : 'fallback';
         const badgeText = movie.source === 'two_stage_model' ? 'Ranked' : 'Popular';
 
         const card = document.createElement('article');
-        card.className = 'ticket';
-        card.style.animationDelay = `${i * 40}ms`;
+        card.className = 'frame';
+        card.style.animationDelay = `${i * 35}ms`;
         card.innerHTML = `
-          <div class="sprockets">${'<span></span>'.repeat(8)}</div>
-          <div class="rank">No. ${String(i + 1).padStart(2,'0')} &nbsp;&middot;&nbsp; ID ${movie.movie_id}</div>
-          <h3>${escapeHtml(movie.title)}</h3>
-          <div class="genres">${genres}</div>
-          <div class="ticket-footer">
-            ${scoreHtml}
+          <div class="sprockets">
+            <div class="holes">${'<span></span>'.repeat(5)}</div>
+            <span class="frame-no">F${String(i + 1).padStart(3,'0')} · ID ${movie.movie_id}</span>
+          </div>
+          <div class="frame-body">
+            <h3>${escapeHtml(movie.title)}</h3>
+            <div class="genres">${genres}</div>
+            ${matchHtml}
             <span class="badge ${badgeClass}">${badgeText}</span>
           </div>
         `;
@@ -411,14 +465,14 @@
       });
 
       if(data.recommendations.length === 0){
-        status.textContent = 'No recommendations returned for this user.';
+        status.textContent = 'No recommendations returned for this viewer.';
       }
     }catch(err){
       status.className = 'result-status error';
       status.textContent = `Couldn't load recommendations: ${err.message}`;
     }finally{
       btn.disabled = false;
-      btn.textContent = 'Get Tickets';
+      btn.textContent = 'Run recommender';
     }
   }
 
